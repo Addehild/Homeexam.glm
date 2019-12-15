@@ -1,1 +1,142 @@
+# Libraries
+library(tidyverse)
+install.packages("dvmisc")
+library(dvmisc)
+library(MASS)
+substrRight <- function(x, n){
+  substr(x, nchar(x)-n+1, nchar(x))
+}
+
+substrRight(as.character(data$release_date), 4)
+
+
+# Importing the data
+data <- read.csv("MOVIE.csv")
+data <- as.tibble(data)
+
+data <- data %>% drop_na(popularity)
+
+levels(data$original_language)
+
+# data <- data %>% filter(original_language %in% c("fr", "de", "it", "no", "uk", "sv", "fi","ne", "es"))
+
+data <- data %>% filter(original_language == "en")
+
+
+data <- data %>%
+  mutate( publ.year = substrRight(as.character(data$release_date), 4))
+
+data <- data %>% filter(publ.year > 2005)
+
+data <- data %>% drop_na(budget)
+
+data$popularity <- trunc(data$popularity)
+
+data <- data %>% filter(popularity < 100)
+
+data$popularity <- str_replace(data$popularity, "[.]", "")
+
+ggplot(data = data, mapping = aes(x = as.numeric(popularity))) +
+  geom_density(color= "red")
+
+
+Poisson <- glm( as.numeric(popularity) ~ as.factor(belongs_to_collection) + budget + vote_average + runtime+ as.factor(publ.year), data=data, family=poisson() )
+
+
+NB.Model <- glm.nb( as.numeric(popularity) ~ as.factor(belongs_to_collection) + budget + vote_average + runtime+ as.factor(publ.year), data=data)
+
+NB.Model$residuals
+mean(NB.Model$residuals^2)
+
+plot(NB.Model)
+summary(NB.Model)
+
+get_mse(NB.Model)
+mean(Poisson$residuals^2)
+data$popularity
+Poisson$residuals
+
+summary(Poisson)
+
+Poisson <- glm( as.numeric(popularity) ~ as.factor(belongs_to_collection) + budget + vote_average + runtime+ as.factor(publ.year), data=data, family=poisson() )
+summary(Poisson)
+
+Poisson <- glm( as.numeric(popularity) ~ revenue + vote_average + vote_count + runtime, data=data, family=poisson() )
+summary(Poisson)
+
+plot(Poisson)
+
+
+
+get_mse(Poisson)
+
+lm <- lm(as.numeric(popularity) ~   as.factor(belongs_to_collection) + revenue + vote_average + vote_count + runtime + as.factor(publ.year), data=data)
+lm$residuals
+
+get_mse(lm)
+
+mse <- mean(lm$residuals^2)
+
+summary(data$popularity)
+
+vec <- data$popularity
+drop_na(vec)
+na.omit(data$popularity)
+
+
+
+summary(data)
+# Getting rid of scientific notation
+options(scipen = 999)
+
+# Creating a variable for profit
+
+data <- data %>%
+  mutate( profit = revenue - budget)
+
+data <- data %>%
+  mutate( ticket.price = revenue / popularity)
+
+summary(data$ticket.price)
+summary(data$production_companies)
+
+data <- data %>%
+  filter(production_companies != c("(Other)")) %>% 
+  drop_na()
+
+data.small <- sample_n(data, 100)
+
+
+
+summary(data.small)
+
+# Plots
+
+# Density plot
+
+d <- density(data$popularity, bw = 8) # returns the density data
+plot(d) # plots the results
+
+ggplot(data = data, mapping = aes(x = popularity)) +
+  geom_density()
+
+# profit vs popularity
+
+
+ggplot(data = data) + 
+  geom_point(mapping = aes(x = profit, y = popularity))
+
+
+
+
+  geom_point(color = data$genres) + 
+  geom_smooth(mapping = aes(x = profit, y = popularity) )
+
+
+
+
+NROW(data)
+NCOL(data)
+
+
 
