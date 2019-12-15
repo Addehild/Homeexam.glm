@@ -3,12 +3,15 @@ library(tidyverse)
 install.packages("dvmisc")
 library(dvmisc)
 library(MASS)
+install.packages("rcompanion")
+library(rcompanion)
+library(pscl)
+
 substrRight <- function(x, n){
   substr(x, nchar(x)-n+1, nchar(x))
 }
 
-substrRight(as.character(data$release_date), 4)
-
+summary(as.numeric(data$publ.year))
 
 # Importing the data
 data <- read.csv("MOVIE.csv")
@@ -18,37 +21,46 @@ data <- data %>% drop_na(popularity)
 
 levels(data$original_language)
 
-# data <- data %>% filter(original_language %in% c("fr", "de", "it", "no", "uk", "sv", "fi","ne", "es"))
+#data <- data %>% filter(original_language %in% c("fr", "de", "it", "no", "uk", "sv", "fi","ne", "es"))
 
+#data <- data %>% filter(original_language %in% c("fi", "no", "se", "dk", "de"))
 data <- data %>% filter(original_language == "en")
 
 
 data <- data %>%
   mutate( publ.year = substrRight(as.character(data$release_date), 4))
 
-data <- data %>% filter(publ.year > 2005)
+data <- data %>% filter(publ.year > 2010)
 
 data <- data %>% drop_na(budget)
 
 data$popularity <- trunc(data$popularity)
-
-data <- data %>% filter(popularity < 100)
 
 data$popularity <- str_replace(data$popularity, "[.]", "")
 
 ggplot(data = data, mapping = aes(x = as.numeric(popularity))) +
   geom_density(color= "red")
 
+ggplot(data = data, mapping = aes(x = as.factor(popularity))) +
+  geom_bar(fill = "green")
 
-Poisson <- glm( as.numeric(popularity) ~ as.factor(belongs_to_collection) + budget + vote_average + runtime+ as.factor(publ.year), data=data, family=poisson() )
 
 
-NB.Model <- glm.nb( as.numeric(popularity) ~ as.factor(belongs_to_collection) + budget + vote_average + runtime+ as.factor(publ.year), data=data)
+Poisson <- glm( as.numeric(popularity) ~ as.factor(belongs_to_collection) + as.factor(publ.year)+ budget + vote_average + runtime, data=data, family=poisson() )
+
+
+NB.Model <- glm.nb( as.numeric(popularity) ~ as.factor(belongs_to_collection) + budget + vote_average + runtime, data=data)
+
+
+Zero.Poisson <- pscl::zeroinfl( as.numeric(popularity) ~ budget|budget, data=data, dist='poisson', link='logit' )
+
+Summary(Zero.Poisson)
 
 NB.Model$residuals
 mean(NB.Model$residuals^2)
 
 plot(NB.Model)
+
 summary(NB.Model)
 
 get_mse(NB.Model)
@@ -65,7 +77,7 @@ Poisson <- glm( as.numeric(popularity) ~ revenue + vote_average + vote_count + r
 summary(Poisson)
 
 plot(Poisson)
-
+accuracy(Poisson)
 
 
 get_mse(Poisson)
@@ -129,7 +141,7 @@ ggplot(data = data) +
 
 
 
-  geom_point(color = data$genres) + 
+geom_point(color = data$genres) + 
   geom_smooth(mapping = aes(x = profit, y = popularity) )
 
 
@@ -137,6 +149,5 @@ ggplot(data = data) +
 
 NROW(data)
 NCOL(data)
-
 
 
