@@ -1,0 +1,57 @@
+\documentclass[12pt]{article}
+\usepackage{graphicx}
+
+\title{Home Exam}
+\author{Andreas Hild}
+\date{\today}
+\renewcommand*\contentsname{Table of contents}
+\begin{document}
+\maketitle 
+\tableofcontents
+\newpage
+
+<<include = FALSE>>=
+opts_chunk$set(size = "footnotesize",
+comment = NA,
+background = "#E7E7E7",
+prompt = FALSE,
+fig.width = 6,
+fig.asp = 0.62,
+fig.align = "center")
+@
+
+<<include=FALSE>>=
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(devtools)
+library(modelr)
+
+@
+
+\maketitle 
+\section{Introduction}
+The box office of all movies in the United States for 2018 was worth 11.9 billion USD.  
+
+https://www.hollywoodreporter.com/news/2018-box-office-revenue-soars-record-119m-us-hits-42b-globally-1172215
+
+The aim of this paper is to predict the number of paying audiences in a cinema for movies with its original language of English movies between 2010 to 2018. 
+
+
+\section{Data}
+\subsection{Description}
+\subsection{Exploratory analysis}
+\subsection{Missing observations}
+
+
+\section{Method}
+\subsection{Poisson}
+\subsection{Negative Binomial}
+
+\section{Results}
+\subsection{Performance metrics}
+\subsection{Conclusions}
+
+
+
+\end{document}
