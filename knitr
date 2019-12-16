@@ -21,7 +21,7 @@ library(cowplot)
 library(stargazer)
 @
 
-<<include=TRUE>>==
+<<include=FALSE>>==
 # Import data
 options(scipen=999)
 substrRight <- function(x, n){
@@ -32,61 +32,42 @@ substrRight <- function(x, n){
 data <- read.csv("MOVIE.csv")
 data <- as.tibble(data)
 
-# data <- data %>% filter(original_language %in% c("fr", "de", "it", "no", "uk", "sv", "fi","ne", "es"))
-
 data <- data %>% filter(original_language == "en")
-
 
 data <- data %>%
   mutate( publ.year = substrRight(as.character(data$release_date), 4))
 
-data <- data %>% filter(publ.year > 2010)
-
-
+data <- data %>% filter(publ.year > 2009 &  publ.year < 2018)
 @
 \maketitle 
 \section{Introduction}
-The box office of all movies in the United States for 2018 was worth 11.9 billion USD and is likely to increase over the next year. Therefore it essential for production companies to maximize their chances of getting as many people as possible to go and see a movie in a cinema. This paper aims to investigate how well Poisson and Negative Binomial models fit a dataset of English movies that were released between 2010 to 2017 in order to model the number of paying audiences in a cinema. 
-
-https://www.hollywoodreporter.com/news/2018-box-office-revenue-soars-record-119m-us-hits-42b-globally-1172215
+The box office of all movies in the United States for 2018 was worth 11.9 billion USD \footnote{https://www.hollywoodreporter.com/news/2018-box-office-revenue-soars-record-119m-us-hits-42b-globally-1172215} and is likely to increase over the next year. Therefore it essential for production companies to maximize their chances of getting as many people as possible to go and see a movie in a cinema. This paper aims to investigate how well Poisson and Negative Binomial models fit a dataset of English movies that were released between 2010 to 2017 in order to model the number of paying audiences in a cinema. 
 
 \section{Data}
 \subsection{Description}
-The original dataset used to construct the models for this report consists of data from 45 457 movies and 26 variables of each observation. The publication year of each movie range from 1900 to 2018. However, I have decided to include data from 2010 to 2017 in the study since I cannot verify that older data have been adjusted for inflation which could lead to misleading results and likewise I only obtained 27 observations for 2018 and therefore I instead decided to drop data from 2018 since I'm using publication year as a factor in my models.  
-
+The original dataset used to construct the models for this report consists of data from 45 457 movies with 26 variables of each observation. The publication year of each movie range from 1900 to 2018. However, I have decided to include data from 2010 to 2017 in the study since I cannot verify that older data have been adjusted for inflation which could lead to misleading results and likewise I only obtained 27 observations for 2018 and therefore I instead decided to drop data from 2018 since I'm using publication year as a factor in my models.  
 The variables of the original dataset are:
 
-belongs to collection whether the movie belongs to a collection or not. 1 indicate Yes and
+\begin{itemize}
+  \item Belongs to collection whether the movie belongs to a collection or not. 1 indicate Yes and
 0 No and will be included in the study.
-budget the budget of the movie in US dollars and will be included in the study.
-original language is the original first language of the movie and the study will just consider movies that have English as original language, this is in order to account for demographic differences in the data, for example the market for Swedish Films are most likely different from the market for English films and I have therefore made the decision to only use English films. 
-The popularity variable is the total number of audiences in the cinema for a given movie and will hereafter be refered to as popularity throughout this report. The popularity variable will be used as the independent variable throughout this report.  
+  \item Budget the budget of the movie in US dollars and will be included in the study.
+  \item Original language is the original first language of the movie and the study will just consider movies that have English as original language, this is in order to account for demographic differences in the data, for example the market for Swedish Films are most likely different from the market for English films and I have therefore made the decision to only use English films. 
+    \item The popularity variable is the total number of audiences in the cinema for a given movie and will hereafter be refered to as popularity throughout this report. The popularity variable will be used as the independent variable throughout this report.  
+     \item Production companies is the names of the production companies 
+    \item Production countries is  the name of the production countries. This variable is dropped since it is very likely to be the same as the original variable language variable and is therefore dropped. 
+   \item  Release date is the date when the film was released and will be discounted since there are too few observations to consider for every day.  
+  \item  Revenue is the revenue of the movie in USD will be included in the study.
+ \item Runtime is the length of the movie in minutes and will be included. 
+ \item Status is the status of the movie, only released movies will be considered in this paper. 
+ \item Title is the title of the movie. 
+ \item Actor is the names of the main act. 
+ \item Director is the is the of the director of the movie
+ \item Vote average the average rating of the movie from a website ranging from 1 to 10
+ \item Vote count from website 2 ranging from 1 to 10. The vote count from website 2 is discounted since the variables have many missing values compared to the vote variable for the first website and therefor only the vote aspect from the first website are included in the study.
+\end{itemize}
 
-production companies is the names of the production companies
-
-production countries is  the name of the production countries. This variable is dropped since it is very likely to be the same as the original variable language variable and is therefore dropped. 
-
-Release date is the date when the film was released and will be discounted since there are to few observations to consider for every day.  
-
-Revenue is the revenue of the movie in USD will be included in the study.
-
-Runtime is the length of the movie in minutes and will be included. 
-
-Status is the status of the movie, only released movies will be considered in this paper. 
-
-Title is the title of the movie. 
-
-Actor is the names of the main act. 
-
-Director is the is the of the director of the movie
-
-Vote average the average rating of the movie from a website ranging from 1 to 10
-
-Vote count from website 2 ranging from 1 to 10. The vote count from website 2 is discounted since the variables have many missing values compared to the vote variable for the first website and therefor only the vote aspect from the first website are included in the study.  
-
-I have created a variable called publication year which correspond to the four last digits of the release date variable. 
-
-The variables production companies, production countries, Title, Actor and Director are categorical variables and have all been excluded from the study since I consider them to include to have too many levels. For example, the variable director has 19 045 different levels in the original dataset which I consider to be too much in order to add value to the analysis.    
+In addition, a variable called publication year which correspond to the four last digits of the release date variable has been created. The variables production companies, production countries, Title, Actor and Director are categorical variables and have all been excluded from the study since I consider them to include too many levels. For example, the variable director has 19 045 different levels in the original dataset which I consider to be too much in order to add value to the analysis.    
 
 \subsection{Exploratory analysis}
 The empirical distribution of the popularity variable is drawn in Figure 1. Which show similarities to a small distribution with a small lambda. 
@@ -138,7 +119,7 @@ VIM::aggr(cbind(data$belongs_to_collection, data$budget, data$revenue, data$popu
 
 Looking at the results obtained above, we can clearly see that we are suffering from severe problems of missing data in the budget variable while the other variables have no missing data. As a statistician this raises a lot of concerns since we only have a full dataset of 24 percent of the observations. So in this case we are faced with three different options, the first one is to drop the budget variable from due analysis due to the large extent of missing values. 
 
-If we assume that the data data is missing completely at random (MCAR), which means that we assume that the probability of being missing is the same for all cases which implies that causes of the missing data are unrelated to the data https://stefvanbuuren.name/fimd/sec-MCAR.html then listwise deletion may be used which in this case would leave us with a dataset of roughly 24 percent of the original dataset. If we however, assume that the data is missing at random (MAR) then we can use an imputation technique such as the EM algorithm. 
+If we assume that the data data is missing completely at random (MCAR), which means that we assume that the probability of being missing is the same for all cases which implies that causes of the missing data are unrelated to the data \footnote{https://stefvanbuuren.name/fimd/sec-MCAR.html}  then listwise deletion may be used which in this case would leave us with a dataset of roughly 24 percent of the original dataset. If we however, assume that the data is missing at random (MAR) then we can use an imputation technique such as the EM algorithm. 
 
 <<>>== 
   data2010 <- data %>%
@@ -164,18 +145,17 @@ If we assume that the data data is missing completely at random (MCAR), which me
    
    data2017 <- data %>%
      filter(publ.year == 2017)
-   data2018 <- data %>%
-     filter(publ.year == 2018)
+
    
    VIM::aggr(cbind(data2010$budget, data2011$budget, data2012$budget, data2013$budget,  
                    data2014$budget, data2015$budget, data2016$budget,
-                   data2017$budget,data2018$budget), col=c('green','red'), numbers=TRUE, sortVars=FALSE,
-             labels = c(2010,2011,2012,2013,2014,2015,2016,2017,2018))
+                   data2017$budget), col=c('green','red'), numbers=TRUE, sortVars=FALSE,
+             labels = c(2010,2011,2012,2013,2014,2015,2016,2017))
 @
 
-As illustrated above we can see that the proportion of missing data per year is fairly even. So if listwise deletion is applied then the proportation of deleted observations for each year is roughly the same. However, using listwise deletion on a dataset where the distribution and percentage of missing data is large is likely to introduce bias in the results. 
+As illustrated above we can see that the proportion of missing data per year is fairly even. So if listwise deletion is applied then the proportation of deleted observations for each year is roughly the same. However, using listwise deletion on a dataset where the distribution and percentage of missing data is large is likely to introduce bias in the results. \footnote{https://www.theanalysisfactor.com/missing-data-mechanism/}
 
-https://www.theanalysisfactor.com/missing-data-mechanism/
+
 
 From a statistics point of view, the best alternative would in my point of view be to drop the budget variable.  Likewise, imputation could be troublesome since most of the explanatory variables in the dataset are categorical with many levels as stated before. 
 
@@ -184,9 +164,8 @@ Taking all of this into account, I'm determined to use two approaches to handle 
 
 In order to fit a model to predict the popularity of a movie, two models will be constructed. The first model is the overdispersed Poisson model and the second being the negative binomial model. Likewise each type of model will be construced with and without the budget model. 
 \subsection{Poisson Regression}
-The Poisson regression model is a generalized linear model where the random component is specified by the Poisson distribution of the response variable which is count and discrete. That is Y has a Poisson distribution that is yi Poisson (mu i) for i = 1, ... N and where any set of X = (X1, X2, ...XN) are explanatory variables which can be both categorical and continous. 
+The Poisson regression model is a generalized linear model where the random component is specified by the Poisson distribution of the response variable which is count and discrete. That is Y has a Poisson distribution that is yi Poisson (mu i) for i = 1, ... N and where any set of X = (X1, X2, ...XN) are explanatory variables which can be both categorical and continous. \footnote{https://newonlinecourses.science.psu.edu/stat504/node/165/}
 
-https://newonlinecourses.science.psu.edu/stat504/node/165/
 \subsection{Negative Binomial Regression}
 The Negative Binomial regression is a form of the Poisson regression in that the distribution’s parameter is itself considered to be a random variable. Hence, the variation of this parameter can account for a variance of the data that is higher than the mean. (https://www.theanalysisfactor.com/regression-models-for-count-data/)
 
@@ -207,11 +186,15 @@ When running the regression we see that the variable budget is not significant a
 \subsection{Performance metrics}
 \subsection{Conclusions}
 
-The results obtained in this report outline the issues with maximum likelihood estimation methods of regression coefficients. That is that the model accu
-https://eranraviv.com/quasi-maximum-likelihood-beauty/
+The results obtained in this report outline the issues with maximum likelihood estimation methods of regression coefficients. \footnote{https://eranraviv.com/quasi-maximum-likelihood-beauty/} That is that the model accu
+
 
 \subsection{Alternative methods}
 Zero-inflated regression model and a simple OLS. 
 
+\section{References}
+
 \end{document}
+
+
 
