@@ -1,8 +1,12 @@
 # Libraries
 library(tidyverse)
 install.packages("dvmisc")
+install.packages("stargazer")
+library(stargazer)
 library(dvmisc)
 library(MASS)
+require(reshape2)
+library(cowplot)
 options(scipen=999)
 substrRight <- function(x, n){
   substr(x, nchar(x)-n+1, nchar(x))
@@ -32,6 +36,8 @@ data <- data %>% filter(publ.year > 2009 &  publ.year < 2018)
 
 data <- data %>% drop_na(budget)
 
+data$popularity <- as.numeric(data$popularity)
+
 #data$popularity <- trunc(data$popularity)
 
 #data <- data %>% filter(popularity < 50)
@@ -44,8 +50,48 @@ ggplot(data = data, mapping = aes(x = as.numeric(popularity))) +
   labs(x = "Popularity" , y = "Density")
 
 
+ggplot(data = data)+ 
+  geom_boxplot()
+
+boxplot(data$popularity)
+
 mean(as.numeric(data$popularity))
 var(data$popularity)
+
+outlierdata <- cbind(data$revenue, data$budget, as.numeric(data$popularity))
+outlierdata <- as.tibble(outlierdata)
+colnames(newdata) <- c("Revenue", "Budget", "Popularity")
+ggplot(data = melt(newdata), aes(x=variable, y=value)) + geom_boxplot(aes(fill=variable))
+
+outliernon <- cbind(data$revenue, data$budget, as.numeric(data$popularity))
+outlierdata <- as.tibble(outlierdata)
+colnames(newdata) <- c("Revenue", "Budget", "Popularity")
+ggplot(data = melt(newdata), aes(x=variable, y=value)) + geom_boxplot(aes(fill=variable))
+
+
+revenue.plot <-  ggplot(data, aes( y=revenue)) + 
+  geom_boxplot(fill="green") + ggtitle("Boxplot of revenue")+ 
+
+popularity.box <-   ggplot(data, aes( y=popularity)) + 
+    geom_boxplot(fill="red") + ggtitle("Boxplot of popularity")
+  
+budget.box <-  ggplot(data, aes( y=budget)) + 
+    geom_boxplot(fill="blue") + ggtitle("Boxplot of budget")
+  
+plot_grid(revenue.plot, popularity.box, popularity.box)
+
+
+vote.av.box <-  ggplot(data, aes( y=vote_average)) + 
+  geom_boxplot(fill="green") + ggtitle("Boxplot of vote average")
+  
+runtime.box <-   ggplot(data, aes( y=runtime)) + 
+  geom_boxplot(fill="red") + ggtitle("Boxplot of runtime")
+
+vote_count.box <-  ggplot(data, aes( y=vote_count)) + 
+  geom_boxplot(fill="blue") + ggtitle("Boxplot of vote count")
+
+plot_grid(vote.av.box, runtime.box, vote_count.box)
+
 
 Poisson <- glm( as.numeric(popularity) ~ as.factor(belongs_to_collection) + budget + revenue + vote_average + vote_count+ runtime+ as.factor(publ.year), data=data, family=quasipoisson(link = log) )
 Poisson <- glm( as.numeric(popularity) ~ as.factor(belongs_to_collection) + budget  + vote_average + vote_count+ runtime+ as.factor(publ.year), data=data, family=quasipoisson() )
@@ -75,11 +121,18 @@ summary(Poisson)
 Poisson <- glm( as.numeric(popularity) ~ as.factor(belongs_to_collection) + budget + vote_average + runtime+ as.factor(publ.year), data=data, family=poisson() )
 summary(Poisson)
 
-Poisson <- glm( as.numeric(popularity) ~ revenue + vote_average + vote_count + runtime, data=data, family=poisson() )
+Poisson2 <- glm( as.numeric(popularity) ~ revenue + vote_average + vote_count + runtime, data=data, family=poisson() )
 summary(Poisson)
 
 plot(Poisson)
 
+stargazer::stargazer(Poisson, type = "text", title = "Table with stargazer")
+stargazer(Poisson, title="Results", align=TRUE)
+
+stargazer(
+  Poisson, Poisson2
+  , type = "text"
+)
 
 
 get_mse(Poisson)
@@ -143,7 +196,7 @@ ggplot(data = data) +
 
 
 
-  geom_point(color = data$genres) + 
+geom_point(color = data$genres) + 
   geom_smooth(mapping = aes(x = profit, y = popularity) )
 
 
