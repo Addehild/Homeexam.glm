@@ -17,10 +17,13 @@ library(ggplot2)
 library(devtools)
 library(modelr)
 library(VIM)
+library(cowplot)
+library(stargazer)
 @
 
 <<include=TRUE>>==
 # Import data
+options(scipen=999)
 substrRight <- function(x, n){
   substr(x, nchar(x)-n+1, nchar(x))
 }
@@ -43,25 +46,50 @@ data <- data %>% filter(publ.year > 2010)
 @
 \maketitle 
 \section{Introduction}
-The box office of all movies in the United States for 2018 was worth 11.9 billion USD and is likely to increase over the next year. Therefore it essential for production companies to maximize their chances of getting as many people as possible to go and see a movie in a cinema. This paper aims to investigate how well Poisson and Negative Binomial models fit a dataset of English movies that were released between 2010 to 2017 in order to model the number of paying audiences in a cinema with the help of  Poisson and Negative Binomial Regression models. This in order to see what aspect that influence the popularity of the movie.
+The box office of all movies in the United States for 2018 was worth 11.9 billion USD and is likely to increase over the next year. Therefore it essential for production companies to maximize their chances of getting as many people as possible to go and see a movie in a cinema. This paper aims to investigate how well Poisson and Negative Binomial models fit a dataset of English movies that were released between 2010 to 2017 in order to model the number of paying audiences in a cinema. 
 
 https://www.hollywoodreporter.com/news/2018-box-office-revenue-soars-record-119m-us-hits-42b-globally-1172215
 
 \section{Data}
 \subsection{Description}
-The original dataset used to construct the models for this report consists of data from 45 457 movies and 26 variables of each observation. The publication year of each movie range from 1900 to 2018. However, I have decided to include data from 2010 to 2017 in the study since I cannot verify that older data has been adjusted for inflation which could lead to misleading results. 
-The variables which are included in the study are :
+The original dataset used to construct the models for this report consists of data from 45 457 movies and 26 variables of each observation. The publication year of each movie range from 1900 to 2018. However, I have decided to include data from 2010 to 2017 in the study since I cannot verify that older data have been adjusted for inflation which could lead to misleading results and likewise I only obtained 27 observations for 2018 and therefore I instead decided to drop data from 2018 since I'm using publication year as a factor in my models.  
+
+The variables of the original dataset are:
 
 belongs to collection whether the movie belongs to a collection or not. 1 indicate Yes and
-0 No.
-budget the budget of the movie in US dollars.
-original language The original first language of the movie.
-The popularity variable is the total number of audiences in the cinema for a given movie and will hereafter be refered to as popularity throughout this report. 
+0 No and will be included in the study.
+budget the budget of the movie in US dollars and will be included in the study.
+original language is the original first language of the movie and the study will just consider movies that have English as original language, this is in order to account for demographic differences in the data, for example the market for Swedish Films are most likely different from the market for English films and I have therefore made the decision to only use English films. 
+The popularity variable is the total number of audiences in the cinema for a given movie and will hereafter be refered to as popularity throughout this report. The popularity variable will be used as the independent variable throughout this report.  
+
+production companies is the names of the production companies
+
+production countries is  the name of the production countries. This variable is dropped since it is very likely to be the same as the original variable language variable and is therefore dropped. 
+
+Release date is the date when the film was released and will be discounted since there are to few observations to consider for every day.  
+
+Revenue is the revenue of the movie in USD will be included in the study.
+
+Runtime is the length of the movie in minutes and will be included. 
+
+Status is the status of the movie, only released movies will be considered in this paper. 
+
+Title is the title of the movie. 
+
+Actor is the names of the main act. 
+
+Director is the is the of the director of the movie
+
+Vote average the average rating of the movie from a website ranging from 1 to 10
+
+Vote count from website 2 ranging from 1 to 10. The vote count from website 2 is discounted since the variables have many missing values compared to the vote variable for the first website and therefor only the vote aspect from the first website are included in the study.  
+
+I have created a variable called publication year which correspond to the four last digits of the release date variable. 
+
+The variables production companies, production countries, Title, Actor and Director are categorical variables and have all been excluded from the study since I consider them to include to have too many levels. For example, the variable director has 19 045 different levels in the original dataset which I consider to be too much in order to add value to the analysis.    
 
 \subsection{Exploratory analysis}
 The empirical distribution of the popularity variable is drawn in Figure 1. Which show similarities to a small distribution with a small lambda. 
-
-
 
 Computing the sample mean and variance for the popularity variable we see that an important property of the Poisson distribution is violated that is equal mean and variance. I will there proceed to use the negative binomial regression and quasi-likelihod estimation in order to account for the violation of this assumption. 
 <<>>==
@@ -73,15 +101,42 @@ ggplot(data = data, mapping = aes(x = as.numeric(popularity))) +
 
 The variable popularity is considered to be count data since each observation measures the number of people at a certain movie. The distribution of counts is discrete, not continuous, and is limited to non-negative values which holds for the popularity variable. 
 
+\subsection{Outliers}
+<<>>==
+revenue.plot <-  ggplot(data, aes( y=revenue)) + 
+  geom_boxplot(fill="green") + ggtitle("Revenue")
+
+popularity.box <-   ggplot(data, aes( y=popularity)) + 
+    geom_boxplot(fill="red") + ggtitle("Popularity")
+  
+budget.box <-  ggplot(data, aes( y=budget)) + 
+    geom_boxplot(fill="blue") + ggtitle("Budget")
+  
+
+@
+<<>>==
+vote.av.box <-  ggplot(data, aes( y=vote_average)) + 
+  geom_boxplot(fill="green") + ggtitle("Vote average")
+  
+runtime.box <-   ggplot(data, aes( y=runtime)) + 
+  geom_boxplot(fill="red") + ggtitle("Runtime")
+
+vote_count.box <-  ggplot(data, aes( y=vote_count)) + 
+  geom_boxplot(fill="blue") + ggtitle("Vote count")
+
+plot_grid(revenue.plot, popularity.box, popularity.box,vote.av.box, runtime.box, vote_count.box)
+@
+
+By looking at the boxplots of the continious variables, I conclude that the variables contain many outliers which may make the analysis troublesome where the quartiles are barely seen for all variables apart from the vote average variable. I will dig deeper into this in later parts.  
 \subsection{Missing observations}
 When exploring the data it is apperent that there is a lot of missing data for the budget variable. 
 
 <<>>==
-VIM::aggr(cbind(data$belongs_to_collection, data$budget, data$popularity, data$runtime, data$vote_average, data$vote_count), col=c('green','red'), numbers=TRUE, sortVars=TRUE, labels=c("Collection", "Budget", "Popularity", "Runtime", "Vote Average", "Vote Count"), cex.axis=.7, gap=3, 
+VIM::aggr(cbind(data$belongs_to_collection, data$budget, data$revenue, data$popularity, data$runtime, data$vote_average, data$vote_count), col=c('green','red'), numbers=TRUE, sortVars=F, labels=c("Collection", "Budget", "Revenue", "Popularity", "Runtime", "Vote Average", "Vote Count"), cex.axis=.7, gap=3, 
                        ylab=c("Proportion of missing","Missing pattern with proportion")) 
 @
 
-Looking at the results obtained above, we can clearly see that we are suffering from severe problems of missing data in the budget variable while the other variables have no missing data. As a statistician this raises a lot of concerns since we only have a full dataset of 24 percent of the observations. So in this case we are faced with three different options, the first one is to drop budget variable since there is so much missing data. 
+Looking at the results obtained above, we can clearly see that we are suffering from severe problems of missing data in the budget variable while the other variables have no missing data. As a statistician this raises a lot of concerns since we only have a full dataset of 24 percent of the observations. So in this case we are faced with three different options, the first one is to drop the budget variable from due analysis due to the large extent of missing values. 
 
 If we assume that the data data is missing completely at random (MCAR), which means that we assume that the probability of being missing is the same for all cases which implies that causes of the missing data are unrelated to the data https://stefvanbuuren.name/fimd/sec-MCAR.html then listwise deletion may be used which in this case would leave us with a dataset of roughly 24 percent of the original dataset. If we however, assume that the data is missing at random (MAR) then we can use an imputation technique such as the EM algorithm. 
 
@@ -118,11 +173,11 @@ If we assume that the data data is missing completely at random (MCAR), which me
              labels = c(2010,2011,2012,2013,2014,2015,2016,2017,2018))
 @
 
-As illustrated above we can see that the proportion of missing data per year is fairly even. Using listwise deletion on a dataset where the distribution and percentage of missing data is large is likely to introduce bias in the results. 
+As illustrated above we can see that the proportion of missing data per year is fairly even. So if listwise deletion is applied then the proportation of deleted observations for each year is roughly the same. However, using listwise deletion on a dataset where the distribution and percentage of missing data is large is likely to introduce bias in the results. 
 
 https://www.theanalysisfactor.com/missing-data-mechanism/
 
-From a statistics point of view, the best alternative would in my point of view be to drop the budget variable and imputation techniques would be problematic since there are so many different levels of our categorical values. 
+From a statistics point of view, the best alternative would in my point of view be to drop the budget variable.  Likewise, imputation could be troublesome since most of the explanatory variables in the dataset are categorical with many levels as stated before. 
 
 Taking all of this into account, I'm determined to use two approaches to handle the problem. I'll construct models without the budget variable and also a model where I have used listwise deletion on the budget variable. The reason for not just dropping the budget variable is since I believe that budget has the strongest causual relationship to popularity where a high budget would lead to a higher popularity. Likewise, imputation is not performed since the complexity of imputing such high propotion of missing values where most of the information is from categorical values with many levels. For example, the variable actor has 19 045 different levels so even though information about for example director is available, since we have data of 19 045 different directors and imputation is therefore discounted as an option for handeling the missing data. 
 \section{Method}
@@ -146,6 +201,7 @@ A potential reason for the not so encouraging results could be due to the sampli
    <<>>==
 Poisson <- glm( as.numeric(popularity) ~ as.factor(belongs_to_collection) + budget + revenue + vote_average + vote_count+ runtime+ as.factor(publ.year), data=data, family=quasipoisson(link = log) )
 @
+
 When running the regression we see that the variable budget is not significant and that the model suffers from overdispersion. 
 
 \subsection{Performance metrics}
@@ -158,3 +214,4 @@ https://eranraviv.com/quasi-maximum-likelihood-beauty/
 Zero-inflated regression model and a simple OLS. 
 
 \end{document}
+
